@@ -1,4 +1,6 @@
 #include "OLED.h"
+#include <stdio.h>
+
 
 #define SWAP(A, B) { A ^= B; B = A ^ B; A ^= B; }
 #define ABS(A) (((A) < 0) ? ((-1) * (A)) : (A))
