@@ -22,19 +22,21 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "OLED.h"
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-float vmeas;//измеренное напряжение (уровень)
-float vmeas_prev; //previous vmeas for filter
+unsigned long display_iterator=0;
+unsigned long ADC_sample_counter=0;
+unsigned long i_sum=0; //sum of i measurment for average count
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define filter_coef 8//value of filtering
+#define DISPLAY_ITERATOR_MAXIMUM 100 //how frequently to display data
+#define ADC_SAMPLE_COUNTER_MAXIMUM 5000 //period of count average i
 
 /* USER CODE END PD */
 
@@ -66,7 +68,7 @@ static void MX_ADC1_Init(void);
 void oled_init(){
 	HAL_Delay(100);
 	OLED_Init(&hi2c1);
-	FontSet(Segoe_UI_Rus_12);
+	FontSet(Segoe_UI_Rus_8);
 	OLED_Clear(0);
 	OLED_UpdateScreen();
 }
@@ -80,14 +82,38 @@ void loop(){
 
 	HAL_ADC_Start(&hadc1); // запускаем преобразование сигнала АЦП
 	HAL_ADC_PollForConversion(&hadc1, 100); // ожидаем окончания преобразования
-	vmeas = HAL_ADC_GetValue(&hadc1); // читаем полученное значение в переменную
-	//HAL_ADC_Stop(&hadc1); // останавливаем АЦП (не обязательно)
-    vmeas=vmeas_prev+((vmeas-vmeas_prev)/filter_coef); //filtering ADC results
-    vmeas_prev=vmeas;
+	int vmeas = HAL_ADC_GetValue(&hadc1); // читаем полученное значение в переменную
+	HAL_ADC_Stop(&hadc1); // останавливаем АЦП (не обязательно)
 
-	OLED_Clear(0);
-	OLED_DrawNum(HAL_ADC_GetValue(&hadc1), 1, 1, 1);
-	OLED_UpdateScreen();
+    OLED_Clear(0);
+    i_sum+=vmeas;
+
+    display_iterator++;
+    if(display_iterator>DISPLAY_ITERATOR_MAXIMUM){
+    	FontSet(Segoe_UI_Rus_8);
+    	OLED_DrawStr("njr", 				1, 		1, 1);//ток
+    	OLED_DrawNum(vmeas, 				20, 	1, 1);
+    	OLED_DrawStr("vF", 					40, 	1, 1);//мА
+    	OLED_DrawStr("ds,",		 			60, 	1, 1);//выборки
+    	OLED_DrawNum(ADC_sample_counter, 	80, 	1, 1);
+    	OLED_DrawRectangleFill(1, 13, 127*((float)ADC_sample_counter/(float)ADC_SAMPLE_COUNTER_MAXIMUM), 16, 1);
+    	OLED_UpdateOnePage(0);
+    	OLED_UpdateOnePage(1);
+    	display_iterator=0;
+    }
+
+    ADC_sample_counter++;
+    if(ADC_sample_counter>ADC_SAMPLE_COUNTER_MAXIMUM){
+    	FontSet(Segoe_UI_Rus_12);
+    	int i_average=i_sum/ADC_sample_counter;
+    	OLED_DrawStr("chtly", 		1, 		35, 1);//средний
+    	OLED_DrawNum(i_average, 	50, 	35, 1);
+    	OLED_DrawStr("vF", 			80, 	35, 1);//мА
+    	OLED_UpdateScreen();
+    	ADC_sample_counter=0;
+    	i_sum=0;
+    }
+
 }
 
 /* USER CODE END 0 */
@@ -156,7 +182,9 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -166,12 +194,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
     Error_Handler();
   }
