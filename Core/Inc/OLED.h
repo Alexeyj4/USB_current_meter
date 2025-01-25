@@ -9,7 +9,7 @@
 #define OLED_ADDRESS		0x78	//0x3C
 #define OLED_WIDTH			128
 #define OLED_HEIGHT			64
-#define OLED_BUFFERSIZE		1024 
+#define OLED_BUFFERSIZE		1024
 
 #define DC_BIT                  6
 #define CONTROL_BYTE_COMMAND    0 << DC_BIT

@@ -27,16 +27,18 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+#define DISPLAY_ITERATOR_MAXIMUM 500 //how frequently to display data
+#define ADC_SAMPLE_COUNTDOWN_MAXIMUM 10000 //period of i average count
+
+const float ADC_i_coef=0.92; //i=ADC*ADC_i_coef
 unsigned long display_iterator=0;
-unsigned long ADC_sample_counter=0;
+unsigned long ADC_sample_countdown=ADC_SAMPLE_COUNTDOWN_MAXIMUM;
 unsigned long i_sum=0; //sum of i measurment for average count
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define DISPLAY_ITERATOR_MAXIMUM 100 //how frequently to display data
-#define ADC_SAMPLE_COUNTER_MAXIMUM 5000 //period of count average i
 
 /* USER CODE END PD */
 
@@ -82,35 +84,45 @@ void loop(){
 
 	HAL_ADC_Start(&hadc1); // запускаем преобразование сигнала АЦП
 	HAL_ADC_PollForConversion(&hadc1, 100); // ожидаем окончания преобразования
-	int vmeas = HAL_ADC_GetValue(&hadc1); // читаем полученное значение в переменную
+	int i_meas = HAL_ADC_GetValue(&hadc1)*ADC_i_coef; // читаем полученное значение в переменную
 	HAL_ADC_Stop(&hadc1); // останавливаем АЦП (не обязательно)
 
-    OLED_Clear(0);
-    i_sum+=vmeas;
+    i_sum+=i_meas;
+
+    OLED_DrawVLine(127*((float)(ADC_SAMPLE_COUNTDOWN_MAXIMUM-ADC_sample_countdown)/(float)ADC_SAMPLE_COUNTDOWN_MAXIMUM), 10, 1+(i_meas/10));
 
     display_iterator++;
     if(display_iterator>DISPLAY_ITERATOR_MAXIMUM){
+    	OLED_DrawRectangleFill(0,0,127,7,0);
     	FontSet(Segoe_UI_Rus_8);
-    	OLED_DrawStr("njr", 				1, 		1, 1);//ток
-    	OLED_DrawNum(vmeas, 				20, 	1, 1);
-    	OLED_DrawStr("vF", 					40, 	1, 1);//мА
-    	OLED_DrawStr("ds,",		 			60, 	1, 1);//выборки
-    	OLED_DrawNum(ADC_sample_counter, 	80, 	1, 1);
-    	OLED_DrawRectangleFill(1, 13, 127*((float)ADC_sample_counter/(float)ADC_SAMPLE_COUNTER_MAXIMUM), 16, 1);
-    	OLED_UpdateOnePage(0);
-    	OLED_UpdateOnePage(1);
+    	OLED_DrawStr("njr", 				1, 		0, 1);//ток
+    	OLED_DrawNum(i_meas, 				20, 	0, 1);
+    	OLED_DrawStr("vF", 					40, 	0, 1);//мА
+    	OLED_DrawStr("ds,",		 			60, 	0, 1);//выборки
+    	char buffer [64];
+    	snprintf(buffer, sizeof(buffer), "%ld", ADC_sample_countdown);
+    	//char * num_string = buffer; //String terminator is added by snprintf
+    	OLED_DrawStr(buffer, 	80, 	0, 1);
+
+    	OLED_UpdateOnePage(0); //0-7px h
+    	OLED_UpdateOnePage(1); //8-15px h
+    	OLED_UpdateOnePage(2); //16-23px h
+    	OLED_UpdateOnePage(3); //24-31px h
+    	OLED_UpdateOnePage(4); //32-39px h
+    	OLED_UpdateOnePage(5); //39-46px h
     	display_iterator=0;
     }
 
-    ADC_sample_counter++;
-    if(ADC_sample_counter>ADC_SAMPLE_COUNTER_MAXIMUM){
+    ADC_sample_countdown--;
+    if(ADC_sample_countdown<=0){
+    	OLED_Clear(0);
     	FontSet(Segoe_UI_Rus_12);
-    	int i_average=i_sum/ADC_sample_counter;
-    	OLED_DrawStr("chtly", 		1, 		35, 1);//средний
-    	OLED_DrawNum(i_average, 	50, 	35, 1);
-    	OLED_DrawStr("vF", 			80, 	35, 1);//мА
+    	int i_average=i_sum/ADC_SAMPLE_COUNTDOWN_MAXIMUM;
+    	OLED_DrawStr("chtly", 		1, 		50, 1);//средний
+    	OLED_DrawNum(i_average, 	50, 	50, 1);
+    	OLED_DrawStr("vF", 			80, 	50, 1);//мА
     	OLED_UpdateScreen();
-    	ADC_sample_counter=0;
+    	ADC_sample_countdown=ADC_SAMPLE_COUNTDOWN_MAXIMUM;
     	i_sum=0;
     }
 
