@@ -28,7 +28,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 #define DISPLAY_ITERATOR_MAXIMUM 500 //how frequently to display data
-#define ADC_SAMPLE_COUNTDOWN_MAXIMUM 10000 //period of i average count
+#define ADC_SAMPLE_COUNTDOWN_MAXIMUM 50000 //period of i average count
 
 const float ADC_i_coef=0.92; //i=ADC*ADC_i_coef
 unsigned long display_iterator=0;
@@ -72,7 +72,15 @@ void oled_init(){
 	OLED_Init(&hi2c1);
 	FontSet(Segoe_UI_Rus_8);
 	OLED_Clear(0);
+/*	OLED_DrawVLine(0,0,20); //display shift test
+	OLED_DrawVLine(1,0,30);
+	OLED_DrawVLine(2,0,40);
+	OLED_DrawVLine(3,0,50);
+	OLED_DrawVLine(127,0,20);
+	OLED_DrawVLine(128,0,30);
+	OLED_DrawVLine(129,0,40);*/
 	OLED_UpdateScreen();
+	//while(1){};//display shift test
 }
 
 void init(){
@@ -85,7 +93,7 @@ void loop(){
 	HAL_ADC_Start(&hadc1); // запускаем преобразование сигнала АЦП
 	HAL_ADC_PollForConversion(&hadc1, 100); // ожидаем окончания преобразования
 	int i_meas = HAL_ADC_GetValue(&hadc1)*ADC_i_coef; // читаем полученное значение в переменную
-	HAL_ADC_Stop(&hadc1); // останавливаем АЦП (не обязательно)
+	//HAL_ADC_Stop(&hadc1); // останавливаем АЦП (не обязательно)
 
     i_sum+=i_meas;
 
