@@ -30,7 +30,7 @@
 #define DISPLAY_ITERATOR_MAXIMUM 500 //how frequently to display data
 #define ADC_SAMPLE_COUNTDOWN_MAXIMUM 50000 //period of i average count
 
-const float ADC_i_coef=0.92; //i=ADC*ADC_i_coef
+const float ADC_i_coef=0.83; //i=ADC*ADC_i_coef
 unsigned long display_iterator=0;
 unsigned long ADC_sample_countdown=ADC_SAMPLE_COUNTDOWN_MAXIMUM;
 unsigned long i_sum=0; //sum of i measurment for average count
